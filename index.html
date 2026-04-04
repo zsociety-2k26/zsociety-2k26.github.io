@@ -1,104 +1,128 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Zsociety</title>
+<meta charset="UTF-8">
+<title>ZSOCIETY</title>
+<style>
+body { margin:0; background:black; color:#00ff00; font-family:monospace; overflow:hidden; }
+canvas { position:fixed; top:0; left:0; z-index:-1; }
 
-  <style>
-    body {
-      margin: 0;
-      background: black;
-      overflow: hidden;
-      font-family: monospace;
-      color: #00ff00;
-    }
+.discord-btn {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  background: rgba(0,0,0,0.7);
+  border: 1px solid #00ff00;
+  padding: 10px 15px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #00ff00;
+}
 
-    canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: -1;
-    }
+.title {
+  text-align:center;
+  margin-top:15%;
+  font-size:60px;
+  animation: glitch 1s infinite;
+}
 
-    /* Bouton Discord */
-    .discord-btn {
-      position: fixed;
-      top: 15px;
-      left: 15px;
-      background: rgba(0,0,0,0.7);
-      border: 1px solid #00ff00;
-      padding: 10px 15px;
-      border-radius: 10px;
-      text-decoration: none;
-      color: #00ff00;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      transition: 0.3s;
-    }
+@keyframes glitch {
+  0% { text-shadow: 2px 2px red; }
+  50% { text-shadow: -2px -2px blue; }
+  100% { text-shadow: 2px -2px green; }
+}
 
-    .discord-btn:hover {
-      background: #00ff00;
-      color: black;
-    }
+.terminal {
+  position:absolute;
+  bottom:20px;
+  left:20px;
+  font-size:14px;
+}
 
-    .title {
-      text-align: center;
-      margin-top: 20%;
-      font-size: 50px;
-      letter-spacing: 5px;
-    }
-  </style>
+.section {
+  position:absolute;
+  top:60%;
+  width:100%;
+  text-align:center;
+}
+
+</style>
 </head>
-
 <body>
 
-<!-- Matrix background -->
 <canvas id="matrix"></canvas>
 
-<!-- Bouton Discord -->
-<a class="discord-btn" href="https://discord.gg/wNUKt7Wwx9" target="_blank">
-  💬 Discord
-</a>
+<audio id="clickSound" src="https://www.soundjay.com/buttons/sounds/button-16.mp3"></audio>
 
-<!-- Titre -->
+<a class="discord-btn" href="https://discord.gg/wNUKt7Wwx9" target="_blank" onclick="playSound()">💬 Discord</a>
+
 <div class="title">ZSOCIETY</div>
 
+<div class="terminal" id="terminal"></div>
+
+<div class="section">
+  <p>> Serveur cybersécurité</p>
+  <p>> OSINT | Hacking éthique | Dev</p>
+</div>
+
 <script>
-  const canvas = document.getElementById("matrix");
-  const ctx = canvas.getContext("2d");
+function playSound(){ document.getElementById('clickSound').play(); }
 
-  canvas.height = window.innerHeight;
-  canvas.width = window.innerWidth;
+// Matrix
+const canvas = document.getElementById("matrix");
+const ctx = canvas.getContext("2d");
+canvas.height = window.innerHeight;
+canvas.width = window.innerWidth;
 
-  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  const fontSize = 14;
-  const columns = canvas.width / fontSize;
+const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const fontSize = 14;
+const columns = canvas.width / fontSize;
+const drops = [];
+for (let x = 0; x < columns; x++) drops[x] = 1;
 
-  const drops = [];
-
-  for (let x = 0; x < columns; x++)
-    drops[x] = 1;
-
-  function draw() {
-    ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "#0F0";
-    ctx.font = fontSize + "px monospace";
-
-    for (let i = 0; i < drops.length; i++) {
-      const text = letters.charAt(Math.floor(Math.random() * letters.length));
-      ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-
-      if (drops[i] * fontSize > canvas.height && Math.random() > 0.975)
-        drops[i] = 0;
-
-      drops[i]++;
-    }
+function draw(){
+  ctx.fillStyle = "rgba(0,0,0,0.05)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = "#0F0";
+  ctx.font = fontSize + "px monospace";
+  for(let i=0;i<drops.length;i++){
+    const text = letters[Math.floor(Math.random()*letters.length)];
+    ctx.fillText(text, i*fontSize, drops[i]*fontSize);
+    if(drops[i]*fontSize > canvas.height && Math.random()>0.975) drops[i]=0;
+    drops[i]++;
   }
+}
+setInterval(draw,33);
 
-  setInterval(draw, 33);
+// Fake terminal
+const lines = [
+"> Initializing system...",
+"> Connecting to Zsociety...",
+"> Access granted",
+"> Welcome"
+];
+
+let i = 0;
+function typeLine(){
+  if(i < lines.length){
+    const p = document.createElement("div");
+    p.textContent = lines[i];
+    document.getElementById("terminal").appendChild(p);
+    i++;
+    setTimeout(typeLine,1000);
+  }
+}
+typeLine();
+
+// Fake member counter
+const memberCount = Math.floor(Math.random()*500)+100;
+const counter = document.createElement("div");
+counter.style.position = "absolute";
+counter.style.top = "15px";
+counter.style.right = "15px";
+counter.textContent = "Members: " + memberCount;
+document.body.appendChild(counter);
+
 </script>
 
 </body>
