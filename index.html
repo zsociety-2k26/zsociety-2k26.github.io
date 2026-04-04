@@ -1,10 +1,105 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
+  <meta charset="UTF-8">
   <title>Zsociety</title>
+
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      overflow: hidden;
+      font-family: monospace;
+      color: #00ff00;
+    }
+
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: -1;
+    }
+
+    /* Bouton Discord */
+    .discord-btn {
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      background: rgba(0,0,0,0.7);
+      border: 1px solid #00ff00;
+      padding: 10px 15px;
+      border-radius: 10px;
+      text-decoration: none;
+      color: #00ff00;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: 0.3s;
+    }
+
+    .discord-btn:hover {
+      background: #00ff00;
+      color: black;
+    }
+
+    .title {
+      text-align: center;
+      margin-top: 20%;
+      font-size: 50px;
+      letter-spacing: 5px;
+    }
+  </style>
 </head>
-<body style="background:black; color:white; text-align:center;">
-  <h1>ZSOCIETY</h1>
-  <p>Bienvenue sur mon site 🔥</p>
+
+<body>
+
+<!-- Matrix background -->
+<canvas id="matrix"></canvas>
+
+<!-- Bouton Discord -->
+<a class="discord-btn" href="https://discord.gg/wNUKt7Wwx9" target="_blank">
+  💬 Discord
+</a>
+
+<!-- Titre -->
+<div class="title">ZSOCIETY</div>
+
+<script>
+  const canvas = document.getElementById("matrix");
+  const ctx = canvas.getContext("2d");
+
+  canvas.height = window.innerHeight;
+  canvas.width = window.innerWidth;
+
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const fontSize = 14;
+  const columns = canvas.width / fontSize;
+
+  const drops = [];
+
+  for (let x = 0; x < columns; x++)
+    drops[x] = 1;
+
+  function draw() {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "#0F0";
+    ctx.font = fontSize + "px monospace";
+
+    for (let i = 0; i < drops.length; i++) {
+      const text = letters.charAt(Math.floor(Math.random() * letters.length));
+      ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+      if (drops[i] * fontSize > canvas.height && Math.random() > 0.975)
+        drops[i] = 0;
+
+      drops[i]++;
+    }
+  }
+
+  setInterval(draw, 33);
+</script>
+
 </body>
 </html>
