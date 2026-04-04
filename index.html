@@ -29,6 +29,42 @@
 
 .feature-item:hover .feature-title {
     text-shadow: 0 0 10px #00f3ff;
+    .btn {
+    position: relative;
+    overflow: hidden;
+    transition: 0.3s ease;
+}
+
+/* glow animé */
+.btn-primary, .btn-secondary {
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+}
+
+/* hover effet lift + glow */
+.btn:hover {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.6);
+}
+
+/* effet "shine" qui traverse le bouton */
+.btn::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        120deg,
+        transparent,
+        rgba(255,255,255,0.4),
+        transparent
+    );
+    transition: 0.5s;
+}
+
+.btn:hover::before {
+    left: 100%;
 }
         }
 
