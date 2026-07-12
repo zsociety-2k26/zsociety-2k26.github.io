@@ -553,6 +553,8 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
   /* =========================================================
      AVERTISSEMENT : ceci est une démo côté client (localStorage).
@@ -775,15 +777,33 @@
     window.open(`${PAYPAL_ME}/${amount}EUR`, '_blank');
   }
 
-  // ---------- Articles (gérés par l'admin) ----------
-  function getArticles() {
-    return JSON.parse(localStorage.getItem('vectis_articles') || '[]');
+  // ---------- Articles (gérés par l'admin, stockage GLOBAL via Firebase) ----------
+  // 1. Va sur https://console.firebase.google.com, crée un projet gratuit.
+  // 2. Dans le projet : "Firestore Database" -> "Créer une base de données" -> mode test.
+  // 3. Dans les paramètres du projet (roue crantée) -> "Vos applications" -> icône "</>" -> copie la config ci-dessous.
+  const firebaseConfig = {
+    apiKey: "AIzaSyAhs9CNh1jqP5EVNZN9UVbuQDIqcI6ekkU",
+    authDomain: "vectis-d5951.firebaseapp.com",
+    projectId: "vectis-d5951",
+    storageBucket: "vectis-d5951.firebasestorage.app",
+    messagingSenderId: "397731806219",
+    appId: "1:397731806219:web:71b80c3413371c69a95b0e"
+  };
+
+  let db = null;
+  let firebaseReady = false;
+  try {
+    if (firebaseConfig.apiKey !== "COLLE_TA_CLE_ICI" && typeof firebase !== 'undefined') {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      firebaseReady = true;
+    }
+  } catch (err) {
+    console.error("Firebase non configuré :", err);
   }
-  function saveArticles(articles) {
-    localStorage.setItem('vectis_articles', JSON.stringify(articles));
-    renderShop();
-    renderArticlesAdmin();
-  }
+
+  let articlesCache = [];
+
   function handleAddArticle(e) {
     e.preventDefault();
     const name = document.getElementById('artName').value.trim();
@@ -791,24 +811,38 @@
     const price = parseFloat(document.getElementById('artPrice').value);
     if (!name || isNaN(price) || price < 0) return false;
 
-    const articles = getArticles();
-    articles.push({ id: 'art_' + Date.now(), name, desc, price });
-    saveArticles(articles);
-    e.target.reset();
+    if (!firebaseReady) {
+      alert("Base de données globale non configurée. Ajoute ta config Firebase dans le code (voir commentaire en haut du script) pour que les articles soient visibles par tous.");
+      return false;
+    }
+    db.collection('articles').add({
+      name, desc, price,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+      e.target.reset();
+    }).catch(err => {
+      console.error(err);
+      alert("Erreur lors de l'ajout de l'article.");
+    });
     return false;
   }
+
   function deleteArticle(id) {
-    const articles = getArticles().filter(a => a.id !== id);
-    saveArticles(articles);
+    if (!firebaseReady) return;
+    db.collection('articles').doc(id).delete().catch(err => console.error(err));
   }
+
   function renderArticlesAdmin() {
-    const articles = getArticles();
     const tbody = document.getElementById('articlesTableBody');
-    if (articles.length === 0) {
+    if (!firebaseReady) {
+      tbody.innerHTML = '<tr><td colspan="4" class="admin-empty">Base globale non configurée — ajoute ta config Firebase dans le code.</td></tr>';
+      return;
+    }
+    if (articlesCache.length === 0) {
       tbody.innerHTML = '<tr><td colspan="4" class="admin-empty">Aucun article ajouté pour le moment.</td></tr>';
       return;
     }
-    tbody.innerHTML = articles.map(a => `
+    tbody.innerHTML = articlesCache.map(a => `
       <tr>
         <td>${escapeHtml(a.name)}</td>
         <td>${escapeHtml(a.desc || '—')}</td>
@@ -817,15 +851,19 @@
       </tr>
     `).join('');
   }
+
   function renderShop() {
-    const articles = getArticles();
     const grid = document.getElementById('shopGrid');
     if (!grid) return;
-    if (articles.length === 0) {
+    if (!firebaseReady) {
+      grid.innerHTML = '<div class="shop-empty">Boutique non configurée pour le moment.</div>';
+      return;
+    }
+    if (articlesCache.length === 0) {
       grid.innerHTML = '<div class="shop-empty">Aucun article disponible pour le moment. Revenez bientôt.</div>';
       return;
     }
-    grid.innerHTML = articles.map(a => `
+    grid.innerHTML = articlesCache.map(a => `
       <div class="shop-card">
         <h3>${escapeHtml(a.name)}</h3>
         <p>${escapeHtml(a.desc || '')}</p>
@@ -835,8 +873,19 @@
     `).join('');
   }
 
+  // Écoute en temps réel : dès qu'un article est ajouté/supprimé par n'importe qui,
+  // tout le monde voit la mise à jour automatiquement, sans recharger la page.
+  if (firebaseReady) {
+    db.collection('articles').orderBy('createdAt', 'asc').onSnapshot(snapshot => {
+      articlesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderShop();
+      renderArticlesAdmin();
+    }, err => console.error(err));
+  }
+
   renderCart();
   renderShop();
+  renderArticlesAdmin();
 </script>
 </body>
 </html>
