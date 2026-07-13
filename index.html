@@ -175,7 +175,7 @@
   }
   .admin-bar h2{font-family:var(--mono); color:var(--amber); font-size:20px;}
   .admin-bar .badge{font-family:var(--mono); font-size:11px; color:var(--amber); border:1px solid var(--amber); padding:3px 10px; border-radius:20px; margin-left:10px;}
-  .admin-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:34px;}
+  .admin-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:16px; margin-bottom:34px;}
   .admin-card{background:var(--bg-panel); border:1px solid var(--line); border-radius:8px; padding:20px;}
   .admin-card b{font-family:var(--mono); font-size:26px; display:block; color:var(--accent);}
   .admin-card span{font-size:12px; color:var(--text-dim);}
@@ -506,6 +506,8 @@
       <a href="#" class="btn btn-ghost" onclick="logoutAdmin(event)">Déconnexion</a>
     </div>
     <div class="admin-grid">
+      <div class="admin-card"><b id="statActive">0</b><span>Actifs sur le site en ce moment</span></div>
+      <div class="admin-card"><b id="statVisits">0</b><span>Visites totales</span></div>
       <div class="admin-card"><b id="statUsers">0</b><span>Comptes inscrits</span></div>
       <div class="admin-card"><b>3</b><span>Audits en cours</span></div>
       <div class="admin-card"><b>12</b><span>Paiements ce mois</span></div>
@@ -555,6 +557,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
   /* =========================================================
      AVERTISSEMENT : ceci est une démo côté client (localStorage).
@@ -784,6 +787,7 @@
   const firebaseConfig = {
     apiKey: "AIzaSyAhs9CNh1jqP5EVNZN9UVbuQDIqcI6ekkU",
     authDomain: "vectis-d5951.firebaseapp.com",
+    databaseURL: "https://vectis-d5951-default-rtdb.europe-west1.firebasedatabase.app",
     projectId: "vectis-d5951",
     storageBucket: "vectis-d5951.firebasestorage.app",
     messagingSenderId: "397731806219",
@@ -791,15 +795,50 @@
   };
 
   let db = null;
+  let rtdb = null;
   let firebaseReady = false;
   try {
     if (firebaseConfig.apiKey !== "COLLE_TA_CLE_ICI" && typeof firebase !== 'undefined') {
       firebase.initializeApp(firebaseConfig);
       db = firebase.firestore();
+      rtdb = firebase.database();
       firebaseReady = true;
     }
   } catch (err) {
     console.error("Firebase non configuré :", err);
+  }
+
+  // ---------- Présence en temps réel + compteur de visites ----------
+  // Utilise la Realtime Database (rtdb.onDisconnect) : dès qu'un visiteur
+  // ferme l'onglet ou perd la connexion, il est automatiquement retiré
+  // de la liste des "actifs", sans action côté serveur.
+  if (firebaseReady && rtdb) {
+    const sessionId = 'sess_' + Math.random().toString(36).slice(2) + Date.now();
+    const myPresenceRef = rtdb.ref('presence/' + sessionId);
+    const connectedRef = rtdb.ref('.info/connected');
+    const visitsRef = rtdb.ref('stats/totalVisits');
+
+    connectedRef.on('value', snap => {
+      if (snap.val() === true) {
+        myPresenceRef.onDisconnect().remove();
+        myPresenceRef.set(true);
+      }
+    });
+
+    // Une visite comptée une fois par onglet ouvert (pas à chaque rechargement multiple rapide)
+    if (!sessionStorage.getItem('vectis_visit_counted')) {
+      visitsRef.transaction(current => (current || 0) + 1);
+      sessionStorage.setItem('vectis_visit_counted', '1');
+    }
+
+    rtdb.ref('presence').on('value', snap => {
+      const el = document.getElementById('statActive');
+      if (el) el.textContent = snap.numChildren();
+    });
+    visitsRef.on('value', snap => {
+      const el = document.getElementById('statVisits');
+      if (el) el.textContent = snap.val() || 0;
+    });
   }
 
   let articlesCache = [];
